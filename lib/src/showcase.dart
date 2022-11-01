@@ -39,7 +39,6 @@ class Showcase extends StatefulWidget {
 
   final Widget child;
   final String? title;
-  final TextAlign? titleAlignment;
   final String? description;
   final ShapeBorder? shapeBorder;
   final BorderRadius? radius;
@@ -64,7 +63,6 @@ class Showcase extends StatefulWidget {
   final VoidCallback? onTargetDoubleTap;
   final VoidCallback? onTargetLongPress;
   final BorderRadius? tipBorderRadius;
-  final TextAlign descriptionAlignment;
 
   /// if disableDefaultTargetGestures parameter is true
   /// onTargetClick, onTargetDoubleTap, onTargetLongPress and
@@ -80,13 +78,18 @@ class Showcase extends StatefulWidget {
   ///
   final double? blurValue;
 
+  //360 truck start custom
+  final VoidCallback? caseViewPrevious;
+  final VoidCallback? caseViewNext;
+  final bool? isShowBtnPrevious;
+  final bool? isShowBtnNext;
+  final VoidCallback? onclose;
+  //360 truck end custom
   const Showcase({
     required this.key,
     required this.child,
     this.title,
-    this.titleAlignment = TextAlign.start,
     required this.description,
-    this.descriptionAlignment = TextAlign.start,
     this.shapeBorder,
     this.overlayColor = Colors.black45,
     this.overlayOpacity = 0.75,
@@ -102,7 +105,7 @@ class Showcase extends StatefulWidget {
     this.animationDuration = const Duration(milliseconds: 2000),
     this.disableAnimation,
     this.contentPadding =
-        const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+    const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
     this.onToolTipClick,
     this.overlayPadding = EdgeInsets.zero,
     this.blurValue,
@@ -111,21 +114,29 @@ class Showcase extends StatefulWidget {
     this.onTargetDoubleTap,
     this.tipBorderRadius,
     this.disableDefaultTargetGestures = false,
+    //360 truck custom
+     this.caseViewPrevious,
+     this.caseViewNext,
+     this.isShowBtnPrevious,
+     this.isShowBtnNext,
+     this.onclose,
+    //360 truck end custom
+
   })  : height = null,
         width = null,
         container = null,
         assert(overlayOpacity >= 0.0 && overlayOpacity <= 1.0,
-            "overlay opacity must be between 0 and 1."),
+        "overlay opacity must be between 0 and 1."),
         assert(
-            onTargetClick == null
-                ? true
-                : (disposeOnTap == null ? false : true),
-            "disposeOnTap is required if you're using onTargetClick"),
+        onTargetClick == null
+            ? true
+            : (disposeOnTap == null ? false : true),
+        "disposeOnTap is required if you're using onTargetClick"),
         assert(
-            disposeOnTap == null
-                ? true
-                : (onTargetClick == null ? false : true),
-            "onTargetClick is required if you're using disposeOnTap");
+        disposeOnTap == null
+            ? true
+            : (onTargetClick == null ? false : true),
+        "onTargetClick is required if you're using disposeOnTap");
 
   const Showcase.withWidget({
     required this.key,
@@ -134,9 +145,7 @@ class Showcase extends StatefulWidget {
     required this.height,
     required this.width,
     this.title,
-    this.titleAlignment = TextAlign.start,
     this.description,
-    this.descriptionAlignment = TextAlign.start,
     this.shapeBorder,
     this.overlayColor = Colors.black45,
     this.radius,
@@ -158,10 +167,16 @@ class Showcase extends StatefulWidget {
     this.onTargetDoubleTap,
     this.tipBorderRadius,
     this.disableDefaultTargetGestures = false,
+    //360 truck custom
+     this.caseViewPrevious,
+     this.caseViewNext,
+     this.isShowBtnPrevious,
+     this.isShowBtnNext,
+     this.onclose,
   })  : showArrow = false,
         onToolTipClick = null,
         assert(overlayOpacity >= 0.0 && overlayOpacity <= 1.0,
-            "overlay opacity must be between 0 and 1.");
+        "overlay opacity must be between 0 and 1.");
 
   @override
   State<Showcase> createState() => _ShowcaseState();
@@ -271,11 +286,11 @@ class _ShowcaseState extends State<Showcase> {
   }
 
   Widget buildOverlayOnTarget(
-    Offset offset,
-    Size size,
-    Rect rectBound,
-    Size screenSize,
-  ) {
+      Offset offset,
+      Size size,
+      Rect rectBound,
+      Size screenSize,
+      ) {
     var blur = 0.0;
     if (_showShowCase) {
       blur = widget.blurValue ?? showCaseWidgetState.blurValue;
@@ -287,84 +302,90 @@ class _ShowcaseState extends State<Showcase> {
 
     return _showShowCase
         ? Stack(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  if (!showCaseWidgetState.disableBarrierInteraction) {
-                    _nextIfAny();
-                  }
-                },
-                child: ClipPath(
-                  clipper: RRectClipper(
-                    area: _isScrollRunning ? Rect.zero : rectBound,
-                    isCircle: widget.shapeBorder == const CircleBorder(),
-                    radius:
-                        _isScrollRunning ? BorderRadius.zero : widget.radius,
-                    overlayPadding: _isScrollRunning
-                        ? EdgeInsets.zero
-                        : widget.overlayPadding,
-                  ),
-                  child: blur != 0
-                      ? BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                          child: Container(
-                            width: MediaQuery.of(context).size.width,
-                            height: MediaQuery.of(context).size.height,
-                            decoration: BoxDecoration(
-                              color: widget.overlayColor
-                                  .withOpacity(widget.overlayOpacity),
-                            ),
-                          ),
-                        )
-                      : Container(
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height,
-                          decoration: BoxDecoration(
-                            color: widget.overlayColor
-                                .withOpacity(widget.overlayOpacity),
-                          ),
-                        ),
+      children: [
+        GestureDetector(
+          onTap: () {
+            if (!showCaseWidgetState.disableBarrierInteraction) {
+              _nextIfAny();
+            }
+          },
+          child: ClipPath(
+            clipper: RRectClipper(
+              area: _isScrollRunning ? Rect.zero : rectBound,
+              isCircle: widget.shapeBorder == const CircleBorder(),
+              radius:
+              _isScrollRunning ? BorderRadius.zero : widget.radius,
+              overlayPadding: _isScrollRunning
+                  ? EdgeInsets.zero
+                  : widget.overlayPadding,
+            ),
+            child: blur != 0
+                ? BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+              child: Container(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
+                decoration: BoxDecoration(
+                  color: widget.overlayColor
+                      .withOpacity(widget.overlayOpacity),
                 ),
               ),
-              if (_isScrollRunning) Center(child: widget.scrollLoadingWidget),
-              if (!_isScrollRunning)
-                _TargetWidget(
-                  offset: offset,
-                  size: size,
-                  onTap: _getOnTargetTap,
-                  radius: widget.radius,
-                  onDoubleTap: widget.onTargetDoubleTap,
-                  onLongPress: widget.onTargetLongPress,
-                  shapeBorder: widget.shapeBorder,
-                  disableDefaultChildGestures:
-                      widget.disableDefaultTargetGestures,
-                ),
-              if (!_isScrollRunning)
-                ToolTipWidget(
-                  position: position,
-                  offset: offset,
-                  screenSize: screenSize,
-                  title: widget.title,
-                  titleAlignment: widget.titleAlignment,
-                  description: widget.description,
-                  descriptionAlignment: widget.descriptionAlignment,
-                  titleTextStyle: widget.titleTextStyle,
-                  descTextStyle: widget.descTextStyle,
-                  container: widget.container,
-                  tooltipColor: widget.showcaseBackgroundColor,
-                  textColor: widget.textColor,
-                  showArrow: widget.showArrow,
-                  contentHeight: widget.height,
-                  contentWidth: widget.width,
-                  onTooltipTap: _getOnTooltipTap,
-                  contentPadding: widget.contentPadding,
-                  disableAnimation: widget.disableAnimation ??
-                      showCaseWidgetState.disableAnimation,
-                  animationDuration: widget.animationDuration,
-                  borderRadius: widget.tipBorderRadius,
-                ),
-            ],
-          )
+            )
+                : Container(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height,
+              decoration: BoxDecoration(
+                color: widget.overlayColor
+                    .withOpacity(widget.overlayOpacity),
+              ),
+            ),
+          ),
+        ),
+        if (_isScrollRunning) Center(child: widget.scrollLoadingWidget),
+        if (!_isScrollRunning)
+          _TargetWidget(
+            offset: offset,
+            size: size,
+            onTap: _getOnTargetTap,
+            radius: widget.radius,
+            onDoubleTap: widget.onTargetDoubleTap,
+            onLongPress: widget.onTargetLongPress,
+            shapeBorder: widget.shapeBorder,
+            disableDefaultChildGestures:
+            widget.disableDefaultTargetGestures,
+          ),
+        if (!_isScrollRunning)
+          ToolTipWidget(
+            position: position,
+            offset: offset,
+            screenSize: screenSize,
+            title: widget.title,
+            description: widget.description,
+            titleTextStyle: widget.titleTextStyle,
+            descTextStyle: widget.descTextStyle,
+            container: widget.container,
+            tooltipColor: widget.showcaseBackgroundColor,
+            textColor: widget.textColor,
+            showArrow: widget.showArrow,
+            contentHeight: widget.height,
+            contentWidth: widget.width,
+            onTooltipTap: _getOnTooltipTap,
+            contentPadding: widget.contentPadding,
+            disableAnimation: widget.disableAnimation ??
+                showCaseWidgetState.disableAnimation,
+            animationDuration: widget.animationDuration,
+            borderRadius: widget.tipBorderRadius,
+            //360 truck custom
+            caseViewPrevious:  widget.caseViewPrevious,
+            caseViewNext: widget.caseViewNext,
+            isShowBtnPrevious: widget.isShowBtnPrevious,
+            isShowBtnNext: widget.isShowBtnNext,
+            onclose: widget.onclose,
+            //360 truck end custom
+
+          ),
+      ],
+    )
         : const SizedBox.shrink();
   }
 }
@@ -398,8 +419,8 @@ class _TargetWidget extends StatelessWidget {
       left: offset.dx,
       child: disableDefaultChildGestures
           ? IgnorePointer(
-              child: _targetWidgetLayer(),
-            )
+        child: _targetWidgetLayer(),
+      )
           : _targetWidgetLayer(),
     );
   }
@@ -418,11 +439,11 @@ class _TargetWidget extends StatelessWidget {
             shape: radius != null
                 ? RoundedRectangleBorder(borderRadius: radius!)
                 : shapeBorder ??
-                    const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(8),
-                      ),
-                    ),
+                const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(8),
+                  ),
+                ),
           ),
         ),
       ),

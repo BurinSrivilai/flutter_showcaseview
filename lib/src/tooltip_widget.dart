@@ -27,16 +27,16 @@ import 'package:flutter/material.dart';
 import 'get_position.dart';
 import 'measure_size.dart';
 
-const _kDefaultPaddingFromParent = 14.0;
+//360truck custom
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ToolTipWidget extends StatefulWidget {
   final GetPosition? position;
   final Offset? offset;
   final Size? screenSize;
   final String? title;
-  final TextAlign? titleAlignment;
   final String? description;
-  final TextAlign? descriptionAlignment;
   final TextStyle? titleTextStyle;
   final TextStyle? descTextStyle;
   final Widget? container;
@@ -51,13 +51,19 @@ class ToolTipWidget extends StatefulWidget {
   final bool disableAnimation;
   final BorderRadius? borderRadius;
 
+  //360 truck custom
+  final VoidCallback? caseViewPrevious;
+  final VoidCallback? caseViewNext;
+  final bool? isShowBtnPrevious;
+  final bool? isShowBtnNext;
+  final VoidCallback? onclose;
+
   const ToolTipWidget({
     Key? key,
     required this.position,
     required this.offset,
     required this.screenSize,
     required this.title,
-    required this.titleAlignment,
     required this.description,
     required this.titleTextStyle,
     required this.descTextStyle,
@@ -69,10 +75,15 @@ class ToolTipWidget extends StatefulWidget {
     required this.contentWidth,
     required this.onTooltipTap,
     required this.animationDuration,
-    required this.descriptionAlignment,
     this.contentPadding = const EdgeInsets.symmetric(vertical: 8),
     required this.disableAnimation,
     required this.borderRadius,
+    //360 truck custom
+     this.caseViewPrevious,
+     this.caseViewNext,
+     this.isShowBtnPrevious,
+     this.isShowBtnNext,
+     this.onclose,
   }) : super(key: key);
 
   @override
@@ -88,19 +99,18 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
   late final AnimationController _parentController;
   late final Animation<double> _curvedAnimation;
 
-  double tooltipWidth = 0;
-  double tooltipScreenEdgePadding = 20;
-  double tooltipTextPadding = 15;
-
   bool isCloseToTopOrBottom(Offset position) {
     var height = 120.0;
     height = widget.contentHeight ?? height;
     final bottomPosition =
         position.dy + ((widget.position?.getHeight() ?? 0) / 2);
     final topPosition = position.dy - ((widget.position?.getHeight() ?? 0) / 2);
-    return ((widget.screenSize?.height ?? MediaQuery.of(context).size.height) -
-                bottomPosition) <=
-            height &&
+    return ((widget.screenSize?.height ?? MediaQuery
+        .of(context)
+        .size
+        .height) -
+        bottomPosition) <=
+        height &&
         topPosition >= height;
   }
 
@@ -112,60 +122,77 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
     }
   }
 
-  void _getTooltipWidth() {
+  double _getTooltipWidth() {
     final titleStyle = widget.titleTextStyle ??
-        Theme.of(context)
+        Theme
+            .of(context)
             .textTheme
             .headline6!
             .merge(TextStyle(color: widget.textColor));
     final descriptionStyle = widget.descTextStyle ??
-        Theme.of(context)
+        Theme
+            .of(context)
             .textTheme
             .subtitle2!
             .merge(TextStyle(color: widget.textColor));
     final titleLength = widget.title == null
         ? 0
         : _textSize(widget.title!, titleStyle).width +
+        widget.contentPadding!.right +
+        widget.contentPadding!.left;
+    final descriptionLength =
+        _textSize(widget.description!, descriptionStyle).width +
             widget.contentPadding!.right +
             widget.contentPadding!.left;
-    final descriptionLength = widget.description == null
-        ? 0
-        : (_textSize(widget.description!, descriptionStyle).width +
-            widget.contentPadding!.right +
-            widget.contentPadding!.left);
     var maxTextWidth = max(titleLength, descriptionLength);
-    if (maxTextWidth > widget.screenSize!.width - tooltipScreenEdgePadding) {
-      tooltipWidth = widget.screenSize!.width - tooltipScreenEdgePadding;
+    if (maxTextWidth > widget.screenSize!.width - 20) {
+      return widget.screenSize!.width - 20;
     } else {
-      tooltipWidth = maxTextWidth + tooltipTextPadding;
+      return maxTextWidth + 15;
     }
+  }
+
+  bool _isLeft() {
+    final screenWidth = widget.screenSize!.width / 3;
+    return !(screenWidth <= widget.position!.getCenter());
+  }
+
+  bool _isRight() {
+    final screenWidth = widget.screenSize!.width / 3;
+    return ((screenWidth * 2) <= widget.position!.getCenter());
   }
 
   double? _getLeft() {
-    if (widget.position != null) {
-      double leftPositionValue =
-          widget.position!.getCenter() - (tooltipWidth * 0.5);
-      if ((leftPositionValue + tooltipWidth) >
-          MediaQuery.of(context).size.width) {
-        return null;
-      } else if ((leftPositionValue) < _kDefaultPaddingFromParent) {
-        return _kDefaultPaddingFromParent;
-      } else {
-        return leftPositionValue;
+    if (_isLeft()) {
+      var leftPadding =
+          widget.position!.getCenter() - (_getTooltipWidth() * 0.1);
+      if (leftPadding + _getTooltipWidth() > widget.screenSize!.width) {
+        leftPadding = (widget.screenSize!.width - 20) - _getTooltipWidth();
       }
+      if (leftPadding < 20) {
+        leftPadding = 14;
+      }
+      return leftPadding;
+    } else if (!(_isRight())) {
+      return widget.position!.getCenter() - (_getTooltipWidth() * 0.5);
+    } else {
+      return null;
     }
-    return null;
   }
 
   double? _getRight() {
-    if (widget.position != null) {
-      var rightPosition = widget.position!.getCenter() + (tooltipWidth * 0.5);
-
-      return (rightPosition + tooltipWidth) > MediaQuery.of(context).size.width
-          ? _kDefaultPaddingFromParent
-          : null;
+    if (_isRight()) {
+      var rightPadding =
+          widget.position!.getCenter() + (_getTooltipWidth() / 2);
+      if (rightPadding + _getTooltipWidth() > widget.screenSize!.width) {
+        rightPadding = 14;
+      }
+      return rightPadding;
+    } else if (!(_isLeft())) {
+      return widget.position!.getCenter() - (_getTooltipWidth() * 0.5);
+    } else {
+      return null;
     }
-    return null;
   }
 
   double _getSpace() {
@@ -178,13 +205,16 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
     return space;
   }
 
+  bool isCheckBox = false;
+
   @override
   void initState() {
     super.initState();
     _parentController = AnimationController(
       duration: widget.animationDuration,
       vsync: this,
-    )..addStatusListener((status) {
+    )
+      ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           _parentController.reverse();
         }
@@ -203,13 +233,10 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
     if (!widget.disableAnimation) {
       _parentController.forward();
     }
+
+    _getDontShowAgain();
   }
 
-  @override
-  void didChangeDependencies() {
-    _getTooltipWidth();
-    super.didChangeDependencies();
-  }
 
   @override
   void dispose() {
@@ -230,7 +257,7 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
         : widget.position!.getTop() + (contentOffsetMultiplier * 3);
 
     final num contentFractionalOffset =
-        contentOffsetMultiplier.clamp(-1.0, 0.0);
+    contentOffsetMultiplier.clamp(-1.0, 0.0);
 
     var paddingTop = isArrowUp ? 22.0 : 0.0;
     var paddingBottom = isArrowUp ? 0.0 : 27.0;
@@ -260,29 +287,32 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
               child: Container(
                 padding: widget.showArrow
                     ? EdgeInsets.only(
-                        top: paddingTop - (isArrowUp ? arrowHeight : 0),
-                        bottom: paddingBottom - (isArrowUp ? 0 : arrowHeight),
-                      )
+                  top: paddingTop - (isArrowUp ? arrowHeight : 0),
+                  bottom: paddingBottom - (isArrowUp ? 0 : arrowHeight),
+                )
                     : null,
                 child: Stack(
                   alignment: isArrowUp
                       ? Alignment.topLeft
                       : _getLeft() == null
-                          ? Alignment.bottomRight
-                          : Alignment.bottomLeft,
+                      ? Alignment.bottomRight
+                      : Alignment.bottomLeft,
                   children: [
                     if (widget.showArrow)
                       Positioned(
                         left: _getLeft() == null
                             ? null
                             : (widget.position!.getCenter() -
-                                (arrowWidth / 2) -
-                                (_getLeft() ?? 0)),
+                            (arrowWidth / 2) -
+                            (_getLeft() ?? 0)),
                         right: _getLeft() == null
-                            ? (MediaQuery.of(context).size.width -
-                                    widget.position!.getCenter()) -
-                                (_getRight() ?? 0) -
-                                (arrowWidth / 2)
+                            ? (MediaQuery
+                            .of(context)
+                            .size
+                            .width -
+                            widget.position!.getCenter()) -
+                            (_getRight() ?? 0) -
+                            (arrowWidth / 2)
                             : null,
                         child: CustomPaint(
                           painter: _Arrow(
@@ -299,16 +329,17 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
                       ),
                     Padding(
                       padding: EdgeInsets.only(
+                        left: getPadding(),
                         top: isArrowUp ? arrowHeight - 1 : 0,
                         bottom: isArrowUp ? 0 : arrowHeight - 1,
                       ),
                       child: ClipRRect(
                         borderRadius:
-                            widget.borderRadius ?? BorderRadius.circular(8.0),
+                        widget.borderRadius ?? BorderRadius.circular(8.0),
                         child: GestureDetector(
                           onTap: widget.onTooltipTap,
                           child: Container(
-                            width: tooltipWidth,
+                            width: _getTooltipWidth(),
                             padding: widget.contentPadding,
                             color: widget.tooltipColor,
                             child: Column(
@@ -319,34 +350,120 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
                                       ? CrossAxisAlignment.start
                                       : CrossAxisAlignment.center,
                                   children: <Widget>[
-                                    widget.title != null
-                                        ? Text(
-                                            widget.title!,
-                                            textAlign: widget.titleAlignment,
-                                            style: widget.titleTextStyle ??
-                                                Theme.of(context)
-                                                    .textTheme
-                                                    .headline6!
-                                                    .merge(
-                                                      TextStyle(
-                                                        color: widget.textColor,
-                                                      ),
-                                                    ),
-                                          )
-                                        : const SizedBox(),
-                                    Text(
-                                      widget.description!,
-                                      textAlign: widget.descriptionAlignment,
-                                      style: widget.descTextStyle ??
-                                          Theme.of(context)
-                                              .textTheme
-                                              .subtitle2!
-                                              .merge(
+                                    Stack(
+                                      children: [
+                                        widget.title != null
+                                            ? Text(
+                                          widget.title!,
+                                          style: widget.titleTextStyle ??
+                                              Theme
+                                                  .of(context)
+                                                  .textTheme
+                                                  .headline6!
+                                                  .merge(
                                                 TextStyle(
                                                   color: widget.textColor,
                                                 ),
                                               ),
+                                        )
+                                            : const SizedBox(),
+                                        Align(
+                                          alignment: Alignment.topRight,
+                                          child: InkWell(
+                                              child: Icon(Icons.cancel,
+                                                color: Colors.red,),
+                                              // onTap: (){
+                                              //   AwesomeDialog(
+                                              //       context: context,
+                                              //       dialogType: DialogType.info,
+                                              //       animType: AnimType.rightSlide,
+                                              //       title: 'Dialog Title',
+                                              //       desc: 'Dialog description here.............',
+                                              //       btnCancelOnPress: () {},
+                                              //   btnOkOnPress: () {},
+                                              //   )..show();
+                                              // }
+                                              onTap: widget.onclose
+                                          ),
+                                        ),
+                                      ],
                                     ),
+
+                                    Visibility(visible: false, child: Text(
+                                      widget.description!,
+                                      style: widget.descTextStyle ??
+                                          Theme
+                                              .of(context)
+                                              .textTheme
+                                              .subtitle2!
+                                              .merge(
+                                            TextStyle(
+                                              color: widget.textColor,
+                                            ),
+                                          ),
+                                    ),),
+                                    HtmlWidget(
+                                      widget.description!,
+                                    ),
+                                    CheckboxListTile(
+                                      contentPadding: EdgeInsets.all(0),
+                                      title: const Text("ไม่ต้องแสดงอีก",
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                      //    <-- label
+                                      value: isCheckBox,
+                                      onChanged: (newValue) async{
+                                        final prefs = await SharedPreferences.getInstance();
+                                        await prefs.setBool('dontShowAgain', newValue!);
+                                        setState(() {
+                                          isCheckBox = newValue!;
+                                        });
+
+                                      },
+                                      controlAffinity: ListTileControlAffinity
+                                          .leading, //  <-- le
+                                    ),
+                                    Row(
+                                      mainAxisAlignment: widget
+                                          .isShowBtnPrevious == true && widget
+                                          .isShowBtnNext == true
+                                          ? MainAxisAlignment.spaceBetween
+                                          : MainAxisAlignment.end, children: [
+
+
+                                      if( widget.isShowBtnPrevious == true)
+                                        Align(
+                                          child: OutlinedButton(
+                                              child: const Text('ย้อนกลับ'),
+                                              onPressed: widget.caseViewPrevious
+                                          ),
+                                          alignment: Alignment.topLeft,
+                                        ),
+
+
+                                      if( widget.isShowBtnNext == true)
+
+                                        Align(
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              primary: Color.fromRGBO(
+                                                  37, 142, 166, 1),
+                                              textStyle: TextStyle(
+                                                // fontSize: 30,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontFamily: "Kanit"
+                                              ),
+                                            ),
+                                            onPressed: widget.caseViewNext,
+
+                                            child: const Text('ถัดไป'),
+                                          ),
+                                          alignment: Alignment.topRight,
+                                        ),
+                                    ],
+                                    )
                                   ],
                                 )
                               ],
@@ -409,16 +526,43 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
     }
   }
 
+  double getPadding(){
+    if(
+    widget.title!.contains("งานประจำ") ||
+        widget.title!.contains("2. สถานะ : รอเริ่ม")
+    ){
+      return 40;
+    }
+
+    return 0;
+  }
+
+
+  void _getDontShowAgain() async{
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    bool dontShow = preferences.getBool("dontShowAgain") ?? false;
+    setState(() {
+      isCheckBox = dontShow;
+    });
+  }
+
+
+
+
   Size _textSize(String text, TextStyle style) {
     final textPainter = (TextPainter(
-            text: TextSpan(text: text, style: style),
-            maxLines: 1,
-            textScaleFactor: MediaQuery.of(context).textScaleFactor,
-            textDirection: TextDirection.ltr)
-          ..layout())
+        text: TextSpan(text: text, style: style),
+        maxLines: 1,
+        textScaleFactor: MediaQuery
+            .of(context)
+            .textScaleFactor,
+        textDirection: TextDirection.ltr)
+      ..layout())
         .size;
     return textPainter;
   }
+
+
 }
 
 class _Arrow extends CustomPainter {
@@ -427,11 +571,10 @@ class _Arrow extends CustomPainter {
   final double strokeWidth;
   final bool isUpArrow;
 
-  _Arrow(
-      {this.strokeColor = Colors.black,
-      this.strokeWidth = 3,
-      this.paintingStyle = PaintingStyle.stroke,
-      this.isUpArrow = true});
+  _Arrow({this.strokeColor = Colors.black,
+    this.strokeWidth = 3,
+    this.paintingStyle = PaintingStyle.stroke,
+    this.isUpArrow = true});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -447,15 +590,11 @@ class _Arrow extends CustomPainter {
     if (isUpArrow) {
       return Path()
         ..moveTo(0, y)
-        ..lineTo(x / 2, 0)
-        ..lineTo(x, y)
-        ..lineTo(0, y);
+        ..lineTo(x / 2, 0)..lineTo(x, y)..lineTo(0, y);
     } else {
       return Path()
         ..moveTo(0, 0)
-        ..lineTo(x, 0)
-        ..lineTo(x / 2, y)
-        ..lineTo(0, 0);
+        ..lineTo(x, 0)..lineTo(x / 2, y)..lineTo(0, 0);
     }
   }
 
@@ -465,4 +604,5 @@ class _Arrow extends CustomPainter {
         oldDelegate.paintingStyle != paintingStyle ||
         oldDelegate.strokeWidth != strokeWidth;
   }
+
 }
