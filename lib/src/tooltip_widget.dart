@@ -409,7 +409,7 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
                                       contentPadding: EdgeInsets.all(0),
                                       title: const Text("ไม่ต้องแสดงอีก",
                                         style: TextStyle(
-                                          color: Colors.red,
+                                          color: Colors.grey,
                                         ),
                                       ),
                                       //    <-- label
